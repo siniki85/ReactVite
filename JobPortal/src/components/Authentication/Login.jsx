@@ -1,8 +1,9 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
+import axios from 'axios';
 
 const loginSchema = yup.object().shape({
     email: yup.string().email('Invalid email address!').required('Email address is required!'),
@@ -14,9 +15,39 @@ const Login = () => {
         resolver: yupResolver(loginSchema),
     });
 
-    const onSubmitHandler = (data) => {
-        console.log(data);
-        reset();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
+
+    const onSubmitHandler = async (e) => {
+        e.prevenDefault();
+        setError("");
+
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Login failed');
+            }
+
+            // Save token & user data to local storage
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user));
+
+            alert('Login successful!');
+            navigate('/'); // Redirect user after login
+        } catch (error) {
+            setError(error.message);
+        }
     }
 
     return (
@@ -33,7 +64,8 @@ const Login = () => {
                                 type="email"
                                 className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="Enter your email"
-                                {...register('email')}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                             {errors.email && <p className='text-red-500 text-xs'>{errors.email.message}</p>}
                         </div>
@@ -43,7 +75,8 @@ const Login = () => {
                                 type="password"
                                 className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="Enter your password"
-                                {...register('password')}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                             {errors.password && <p className='text-red-500 text-xs'>{errors.password.message}</p>}
                         </div>

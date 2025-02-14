@@ -1,11 +1,12 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
+import axios from 'axios';
 
 const registerSchema = yup.object().shape({
-    fullname: yup.string().required('Full Name is required!'),
+    fullName: yup.string().required('Full Name is required!'),
     email: yup.string().email('Invalid email address!').required('Email address is required!'),
     password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required!'),
     confirmPassword: yup.string()
@@ -18,9 +19,31 @@ const Register = () => {
         resolver: yupResolver(registerSchema)
     });
 
-    const onSubmitHandler = (data) => {
-        console.log(data);
-        reset();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+
+    const onSubmitHandler = async (data) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await axios.post('http://localhost:5000/api/auth/register', {
+                fullName: data.fullName,
+                email: data.email,
+                password: data.password
+            });
+
+            //Reset form on success
+            reset();
+
+            //Navigate to login
+            navigate('/login');
+        } catch (error) {
+            setError(error.res?.data?.message || 'Registration Failed! Try Again!')
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -37,9 +60,9 @@ const Register = () => {
                                 type="text"
                                 className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="Enter your full name"
-                                {...register('fullname')}
+                                {...register('fullName')}
                             />
-                            {errors.fullname && <p className='text-red-500 text-xs'>{errors.fullname.message}</p>}
+                            {errors.fullName && <p className='text-red-500 text-xs'>{errors.fullName.message}</p>}
                         </div>
                         <div className="mb-4">
                             <label className="block text-gray-600 text-sm font-medium">Email Address</label>
@@ -86,4 +109,4 @@ const Register = () => {
     )
 }
 
-export default Register
+export default Register;
